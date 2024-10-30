@@ -419,28 +419,5 @@ public class CaptureActivity extends AppCompatActivity {
         }
     }
 
-    public void downloadModel(){
-        // Toast.makeText(CaptureActivity.this, "모델 다운 시작", Toast.LENGTH_SHORT).show();
-        DownloadConditions downloadConditions = new DownloadConditions.Builder()
-                .requireWifi()
-                .build();
-
-        for ( String key : translators.keySet() ) {
-            translators.get(key).downloadModelIfNeeded(downloadConditions)
-                    .addOnSuccessListener(new OnSuccessListener<Void>() {
-                        public void onSuccess(Void Unused) {
-//                            Utils.showToast(getApplicationContext(), "모델 다운 성공");
-                            // Toast.makeText(CaptureActivity.this, "모델 다운 성공: " + key, Toast.LENGTH_SHORT).show();
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-//                            Utils.showToast(getApplicationContext(), "모델 다운 실패");
-                            Toast.makeText(CaptureActivity.this, "모델 다운 실패: " + key, Toast.LENGTH_SHORT).show();
-                        }
-                    });
-        }
-    }
 
 }
