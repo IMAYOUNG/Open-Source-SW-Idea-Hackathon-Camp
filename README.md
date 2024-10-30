@@ -3,4 +3,4 @@
 
 ![화면 캡처 2024-10-29 160758](https://github.com/user-attachments/assets/77e93687-7e3b-4186-8486-59a7f121d82c)
 
-[STARWORDS_해커톤발표.pdf](https://github.com/user-attachments/files/17552912/STARWORDS_.pdf)
+<!-- [STARWORDS_해커톤발표.pdf](https://github.com/user-attachments/files/17552912/STARWORDS_.pdf) -->
