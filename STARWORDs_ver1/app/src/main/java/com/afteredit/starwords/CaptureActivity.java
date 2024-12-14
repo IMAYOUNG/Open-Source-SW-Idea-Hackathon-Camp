@@ -282,6 +282,20 @@ public class CaptureActivity extends AppCompatActivity {
                         int rowStride = planes[0].getRowStride();
                         int rowPadding = rowStride - pixelStride * screenWidth;
 
+                        // Bitmap 생성
+                        bitmap = Bitmap.createBitmap(screenWidth + rowPadding / pixelStride, screenHeight, Bitmap.Config.ARGB_8888);
+                        bitmap.copyPixelsFromBuffer(buffer);
+
+                        if (bitmap != null) {
+                            // 캡처된 비트맵을 ImageView에 표시합니다.
+                            Bitmap bitmap_ = bitmap;
+                            _extractTextFromUri(bitmap_);
+                        }
+
+                        // 대기 상태 진입 (동기화 블록 내에서 호출)
+                        synchronized (imageReader) {
+                            imageReader.wait();
+                        }
 
                         //                    // 파일로 저장
     //                    File file = new File(getExternalFilesDir(null), "screenshot.png");
@@ -396,6 +410,68 @@ public class CaptureActivity extends AppCompatActivity {
                 });
     }
 
+    // 텍스트 위치에 번역된 내용을 올리는 함수
+
+    // string으로 전달받은 데이터 파싱
+    // 형식 왼쪽위 x1,y1 오른쪽아래 x2, y2 내용\n
+    // input Format:  x1 y1 x2 y2 text\n
+    // input Example: "200 200 200 200 T 1\n400 600 300 200 T2 a\n"
+    // output Format: data.leftTop_textView_x, data.leftTop_textView_y, data.txtWidth, data.txtHeight, data.textStr
+
+    private void makeButton(int leftTop_textView_x, int leftTop_textView_y, int txtWidth, int txtHeight, String text, String BackgroundColor, String TextColor) { //버튼생성 메서드
+        try {
+            final WindowManager mManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+
+            //디스플레이 좌측 상단
+            final int leftTop_x = -screenWidth/2 - 20;
+            final int leftTop_y = -screenHeight/2 + 20;
+
+            //오버레이 기능 -> 안드로이드 버전에 따라 작동방식 다르게 만듦.
+            int flags;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {  //안드로이드 8 이상
+                flags = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+            } else {  //안드로이드 8 미만
+                flags = WindowManager.LayoutParams.TYPE_PHONE;
+            }
+            //오버레이 창의 넓이와 높이
+            final WindowManager.LayoutParams mParams = new WindowManager.LayoutParams(
+                    -2, -2, //-2: wrap_content
+                    flags, //오버레이 유형
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, //외부 터치 가능
+                    PixelFormat.TRANSLUCENT); //창 포맷으로 반투명(translucent) 값을 지정
+
+            TextView txt = new TextView(this); //버튼 인스턴스 생성
+            //txt.setPadding(8, 8, 8, 8); // 패딩을 넣고 싶으면 textview 전체 크기를 키우고 넣어야함
+            txt.setWidth(txtWidth);
+            txt.setHeight(txtHeight);
+            TextViewCompat.setAutoSizeTextTypeWithDefaults(txt, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
+            txt.setGravity(Gravity.CENTER);
+            txt.setText(text);
+            txt.setBackgroundColor(Color.parseColor(BackgroundColor));
+            txt.setTextColor(Color.parseColor(TextColor));
+
+            //주의 - 중심 기준이라 textview 띄울 때 조심해야 함
+            //상단 툴바 포함 위치
+            mParams.x = leftTop_x + leftTop_textView_x; // x 좌표를 100 픽셀로 설정
+            mParams.y = leftTop_y + leftTop_textView_y; // y 좌표를 200 픽셀로 설정
+            mManager.addView(txt, mParams); //WindowManager를 사용하여 화면에 뷰 추가
+
+            textViews.add(txt);
+
+            // Toast.makeText(this, "make text", Toast.LENGTH_SHORT).show();
+            block_count++;
+            if (block_max_num == block_count){
+                Toast.makeText(this, "전역 변수 접근 성공", Toast.LENGTH_SHORT).show();
+                synchronized (imageReader) {
+                    // 어떤 조건이 충족되면 다른 스레드에게 알리고 대기 상태에서 깨움
+                    imageReader.notify();
+                }
+            }
+
+        } catch (Exception e) { //오류 발생시 토스트메시지로 오류내용 출력
+            Toast.makeText(this, e.toString(), Toast.LENGTH_SHORT).show();
+        }
+    }
     private void removeButton() {
         try {
             // 이용자가 볼수 있는 시간
@@ -419,5 +495,28 @@ public class CaptureActivity extends AppCompatActivity {
         }
     }
 
+    public void downloadModel(){
+        // Toast.makeText(CaptureActivity.this, "모델 다운 시작", Toast.LENGTH_SHORT).show();
+        DownloadConditions downloadConditions = new DownloadConditions.Builder()
+                .requireWifi()
+                .build();
+
+        for ( String key : translators.keySet() ) {
+            translators.get(key).downloadModelIfNeeded(downloadConditions)
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                        public void onSuccess(Void Unused) {
+//                            Utils.showToast(getApplicationContext(), "모델 다운 성공");
+                            // Toast.makeText(CaptureActivity.this, "모델 다운 성공: " + key, Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+//                            Utils.showToast(getApplicationContext(), "모델 다운 실패");
+                            Toast.makeText(CaptureActivity.this, "모델 다운 실패: " + key, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        }
+    }
 
 }
